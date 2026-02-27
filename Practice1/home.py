@@ -1,0 +1,5 @@
+print("Hello, World!")
+print("Danial")
+print("Danial is awesome")
+print("I am from Kazakhstan")
+print("Hello, everyone!")
