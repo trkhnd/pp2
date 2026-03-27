@@ -1,0 +1,5 @@
+host = "localhost"
+dbname = "phonebook_db"
+user = "torekhan.danial"
+password = ""
+port = "5432"
