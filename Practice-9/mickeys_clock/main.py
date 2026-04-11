@@ -1,32 +1,29 @@
 import pygame
 from clock import MickeyClock
 
-pygame.init()
-pygame.font.init()
 
-WIDTH, HEIGHT = 600, 600
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Mickey Mouse Clock")
+def main():
+    pygame.init()
+    pygame.font.init()
 
-clock = pygame.time.Clock()
+    screen = pygame.display.set_mode((600, 600))
+    pygame.display.set_caption("Mickey's Clock")
 
-# Load and scale hand image
-hand_img = pygame.image.load("images/mickey_hand.png").convert_alpha()
-hand_img = pygame.transform.scale(hand_img, (50, 200))
+    app = MickeyClock(screen)
+    timer = pygame.time.Clock()
 
-mickey_clock = MickeyClock(screen, hand_img)
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
 
-running = True
-while running:
-    screen.fill((255, 255, 255))  # white background
+        app.draw()
+        pygame.display.flip()
+        timer.tick(60)
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+    pygame.quit()
 
-    mickey_clock.draw()
 
-    pygame.display.flip()
-    clock.tick(1)  # update every second
-
-pygame.quit()
+if __name__ == "__main__":
+    main()
