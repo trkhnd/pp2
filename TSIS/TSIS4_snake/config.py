@@ -1,5 +1,5 @@
 DB_NAME = "snake_db"
-DB_USER = "postgres"
+DB_USER = "torekhan.danial"
 DB_PASSWORD = ""
 DB_HOST = "localhost"
 DB_PORT = "5432"
