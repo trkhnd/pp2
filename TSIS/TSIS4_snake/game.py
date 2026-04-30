@@ -1,6 +1,5 @@
 import pygame
 import random
-import json
 import os
 
 from config import WIDTH, HEIGHT, CELL_SIZE, GAME_TOP, GRID_WIDTH, GRID_HEIGHT
@@ -24,6 +23,7 @@ class SnakeGame:
         self.speed = self.base_speed
 
         self.game_over = False
+        self.game_over_sound_played = False
 
         self.normal_food = None
         self.poison_food = None
@@ -46,9 +46,46 @@ class SnakeGame:
         self.font = pygame.font.SysFont("Arial", 24)
         self.big_font = pygame.font.SysFont("Arial", 42)
 
+        self.sounds = {}
+        self.load_sounds()
+
         self.spawn_food()
         self.spawn_poison()
         self.spawn_powerup()
+
+    def load_sounds(self):
+        if not self.settings["sound"]:
+            return
+
+        try:
+            pygame.mixer.init()
+
+            if os.path.exists("assets/eat.wav"):
+                self.sounds["eat"] = pygame.mixer.Sound("assets/eat.wav")
+
+            if os.path.exists("assets/powerup.wav"):
+                self.sounds["powerup"] = pygame.mixer.Sound("assets/powerup.wav")
+
+            if os.path.exists("assets/gameover.wav"):
+                self.sounds["gameover"] = pygame.mixer.Sound("assets/gameover.wav")
+
+        except Exception as e:
+            print("Sound loading error:", e)
+            self.sounds = {}
+
+    def play_sound(self, name):
+        if not self.settings["sound"]:
+            return
+
+        if name in self.sounds:
+            self.sounds[name].play()
+
+    def set_game_over(self):
+        if not self.game_over_sound_played:
+            self.play_sound("gameover")
+            self.game_over_sound_played = True
+
+        self.game_over = True
 
     def random_empty_cell(self):
         while True:
@@ -62,6 +99,10 @@ class SnakeGame:
                 and pos != self.normal_food
                 and pos != self.poison_food
             ):
+                if self.powerup is not None:
+                    if pos == self.powerup["pos"]:
+                        continue
+
                 return pos
 
     def spawn_food(self):
@@ -96,6 +137,7 @@ class SnakeGame:
         amount = min(5 + self.level * 2, 25)
 
         head = self.snake[0]
+
         protected_cells = [
             head,
             (head[0] + 1, head[1]),
@@ -120,6 +162,12 @@ class SnakeGame:
                 continue
 
             if pos in self.obstacles:
+                continue
+
+            if pos == self.normal_food or pos == self.poison_food:
+                continue
+
+            if self.powerup is not None and pos == self.powerup["pos"]:
                 continue
 
             self.obstacles.append(pos)
@@ -157,20 +205,6 @@ class SnakeGame:
             if now >= self.active_powerup_end:
                 self.active_powerup = None
                 self.speed = self.base_speed
-
-    def handle_collision(self):
-        if self.shield:
-            self.shield = False
-            self.active_powerup = None
-
-            head_x, head_y = self.snake[0]
-            head_x = max(0, min(GRID_WIDTH - 1, head_x))
-            head_y = max(0, min(GRID_HEIGHT - 1, head_y))
-
-            self.snake[0] = (head_x, head_y)
-            return
-
-        self.game_over = True
 
     def update(self):
         if self.game_over:
@@ -214,14 +248,17 @@ class SnakeGame:
             if self.shield:
                 self.shield = False
                 self.active_powerup = None
+                self.play_sound("powerup")
                 return
             else:
-                self.game_over = True
+                self.set_game_over()
                 return
 
         self.snake.insert(0, new_head)
 
         if new_head == self.normal_food:
+            self.play_sound("eat")
+
             self.score += self.food_value * 10
             self.food_eaten += 1
 
@@ -234,6 +271,8 @@ class SnakeGame:
             self.spawn_food()
 
         elif new_head == self.poison_food:
+            self.play_sound("eat")
+
             self.score = max(0, self.score - 10)
 
             for _ in range(2):
@@ -241,12 +280,14 @@ class SnakeGame:
                     self.snake.pop()
 
             if len(self.snake) <= 1:
-                self.game_over = True
+                self.set_game_over()
                 return
 
             self.spawn_poison()
 
         elif self.powerup is not None and new_head == self.powerup["pos"]:
+            self.play_sound("powerup")
+
             self.apply_powerup(self.powerup["type"])
             self.score += 25
             self.powerup = None
@@ -257,12 +298,14 @@ class SnakeGame:
 
     def draw_cell(self, screen, pos, color):
         x, y = pos
+
         rect = pygame.Rect(
             x * CELL_SIZE,
             GAME_TOP + y * CELL_SIZE,
             CELL_SIZE,
             CELL_SIZE
         )
+
         pygame.draw.rect(screen, color, rect)
 
     def draw_grid(self, screen):
@@ -298,6 +341,7 @@ class SnakeGame:
         ]
 
         x = 15
+
         for line in hud_lines:
             text = self.font.render(line, True, (255, 255, 255))
             screen.blit(text, (x, 20))
