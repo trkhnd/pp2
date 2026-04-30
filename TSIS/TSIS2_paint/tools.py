@@ -24,8 +24,18 @@ def draw_shape(surface, tool, start_pos, end_pos, color, brush_size):
 
     elif tool == "square":
         side = min(width, height)
-        rect = pygame.Rect(left, top, side, side)
-        pygame.draw.rect(surface, color, rect, brush_size)
+
+        if x2 < x1:
+            left = x1 - side
+        else:
+            left = x1
+
+        if y2 < y1:
+            top = y1 - side
+        else:
+            top = y1
+
+        pygame.draw.rect(surface, color, (left, top, side, side), brush_size)
 
     elif tool == "right_triangle":
         points = [

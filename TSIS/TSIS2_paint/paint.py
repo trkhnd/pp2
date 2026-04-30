@@ -79,17 +79,18 @@ def save_canvas():
 
     time_name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     filename = f"saves/paint_{time_name}.png"
+
     pygame.image.save(canvas, filename)
     print(f"Saved: {filename}")
 
 
 def draw_button(rect, text, active=False):
     if active:
-        color = (180, 220, 255)
+        button_color = (180, 220, 255)
     else:
-        color = (220, 220, 220)
+        button_color = (220, 220, 220)
 
-    pygame.draw.rect(screen, color, rect)
+    pygame.draw.rect(screen, button_color, rect)
     pygame.draw.rect(screen, (0, 0, 0), rect, 2)
 
     label = font.render(text, True, (0, 0, 0))
@@ -114,6 +115,7 @@ def draw_toolbar():
         draw_button(rect, short_name, current_tool == tool)
 
         x += 85
+
         if x + 80 > WIDTH:
             x = 10
             y += 35
@@ -135,7 +137,6 @@ def draw_toolbar():
         x += 35
 
     size_buttons = []
-
     sizes = [
         (2, "S"),
         (5, "M"),
@@ -151,19 +152,21 @@ def draw_toolbar():
         draw_button(rect, name, brush_size == size)
         x += 45
 
-    info = f"Tool: {current_tool} | Size: {brush_size}px | Ctrl+S: Save | 1/2/3: Brush size"
+    info = f"Tool: {current_tool} | Size: {brush_size}px | Cmd+S/Ctrl+S: Save | 1/2/3: Brush size"
     info_text = font.render(info, True, (0, 0, 0))
     screen.blit(info_text, (470, 60))
 
 
 def handle_toolbar_click(pos):
-    global current_tool, current_color, brush_size, text_mode, text_value
+    global current_tool, current_color, brush_size
+    global text_mode, text_value, text_position
 
     for rect, tool in tool_buttons:
         if rect.collidepoint(pos):
             current_tool = tool
             text_mode = False
             text_value = ""
+            text_position = None
             return True
 
     for rect, color in color_buttons:
@@ -183,13 +186,18 @@ running = True
 
 while running:
     screen.fill((255, 255, 255))
-    screen.blit(canvas, (0, TOOLBAR_HEIGHT))
 
     preview_surface = canvas.copy()
 
     if drawing and start_pos is not None and last_pos is not None:
         if current_tool == "line":
-            pygame.draw.line(preview_surface, current_color, start_pos, last_pos, brush_size)
+            pygame.draw.line(
+                preview_surface,
+                current_color,
+                start_pos,
+                last_pos,
+                brush_size
+            )
 
         elif current_tool in [
             "rectangle",
@@ -199,7 +207,14 @@ while running:
             "equilateral_triangle",
             "rhombus"
         ]:
-            draw_shape(preview_surface, current_tool, start_pos, last_pos, current_color, brush_size)
+            draw_shape(
+                preview_surface,
+                current_tool,
+                start_pos,
+                last_pos,
+                current_color,
+                brush_size
+            )
 
     screen.blit(preview_surface, (0, TOOLBAR_HEIGHT))
 
@@ -217,8 +232,11 @@ while running:
         if event.type == pygame.KEYDOWN:
             keys = pygame.key.get_pressed()
 
-            if keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]:
-                if event.key == pygame.K_s:
+            if event.key == pygame.K_s:
+                ctrl_pressed = keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]
+                cmd_pressed = keys[pygame.K_LMETA] or keys[pygame.K_RMETA]
+
+                if ctrl_pressed or cmd_pressed:
                     save_canvas()
 
             if event.key == pygame.K_1:
@@ -249,7 +267,8 @@ while running:
                     text_value = text_value[:-1]
 
                 else:
-                    text_value += event.unicode
+                    if event.unicode:
+                        text_value += event.unicode
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
@@ -277,11 +296,23 @@ while running:
                 pos = canvas_mouse_pos(event.pos)
 
                 if current_tool == "pencil":
-                    pygame.draw.line(canvas, current_color, last_pos, pos, brush_size)
+                    pygame.draw.line(
+                        canvas,
+                        current_color,
+                        last_pos,
+                        pos,
+                        brush_size
+                    )
                     last_pos = pos
 
                 elif current_tool == "eraser":
-                    pygame.draw.line(canvas, (255, 255, 255), last_pos, pos, brush_size)
+                    pygame.draw.line(
+                        canvas,
+                        (255, 255, 255),
+                        last_pos,
+                        pos,
+                        brush_size
+                    )
                     last_pos = pos
 
                 else:
@@ -293,7 +324,13 @@ while running:
                     end_pos = canvas_mouse_pos(event.pos)
 
                     if current_tool == "line":
-                        pygame.draw.line(canvas, current_color, start_pos, end_pos, brush_size)
+                        pygame.draw.line(
+                            canvas,
+                            current_color,
+                            start_pos,
+                            end_pos,
+                            brush_size
+                        )
 
                     elif current_tool in [
                         "rectangle",
@@ -303,7 +340,14 @@ while running:
                         "equilateral_triangle",
                         "rhombus"
                     ]:
-                        draw_shape(canvas, current_tool, start_pos, end_pos, current_color, brush_size)
+                        draw_shape(
+                            canvas,
+                            current_tool,
+                            start_pos,
+                            end_pos,
+                            current_color,
+                            brush_size
+                        )
 
                 drawing = False
                 start_pos = None
