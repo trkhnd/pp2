@@ -1,5 +1,6 @@
 import pygame
 import random
+import os
 
 
 class RacerGame:
@@ -26,7 +27,12 @@ class RacerGame:
         self.player_lane = 1
         self.player_x = self.lanes[self.player_lane] - self.player_width // 2
         self.player_y = self.height - 120
-        self.player_rect = pygame.Rect(self.player_x, self.player_y, self.player_width, self.player_height)
+        self.player_rect = pygame.Rect(
+            self.player_x,
+            self.player_y,
+            self.player_width,
+            self.player_height
+        )
 
         self.car_colors = {
             "blue": (40, 120, 255),
@@ -35,7 +41,10 @@ class RacerGame:
             "yellow": (240, 220, 40)
         }
 
-        self.player_color = self.car_colors.get(settings["car_color"], (40, 120, 255))
+        self.player_color = self.car_colors.get(
+            settings["car_color"],
+            (40, 120, 255)
+        )
 
         self.traffic = []
         self.obstacles = []
@@ -44,7 +53,7 @@ class RacerGame:
         self.road_events = []
 
         self.distance = 0
-        self.finish_distance = 5000
+        self.finish_distance = 15000
         self.coins_collected = 0
         self.score = 0
 
@@ -68,6 +77,35 @@ class RacerGame:
 
         self.font = pygame.font.SysFont("Arial", 24)
         self.big_font = pygame.font.SysFont("Arial", 40)
+
+        self.sounds = {}
+        self.load_sounds()
+
+    def load_sounds(self):
+        if not self.settings["sound"]:
+            return
+
+        try:
+            pygame.mixer.init()
+
+            if os.path.exists("assets/coin.wav"):
+                self.sounds["coin"] = pygame.mixer.Sound("assets/coin.wav")
+
+            if os.path.exists("assets/crash.wav"):
+                self.sounds["crash"] = pygame.mixer.Sound("assets/crash.wav")
+
+            if os.path.exists("assets/powerup.wav"):
+                self.sounds["powerup"] = pygame.mixer.Sound("assets/powerup.wav")
+
+        except Exception:
+            self.sounds = {}
+
+    def play_sound(self, name):
+        if not self.settings["sound"]:
+            return
+
+        if name in self.sounds:
+            self.sounds[name].play()
 
     def get_start_speed(self):
         difficulty = self.settings["difficulty"]
@@ -140,7 +178,12 @@ class RacerGame:
         x = self.lanes[lane] - 25
         y = -60
 
-        obstacle_type = random.choice(["barrier", "oil", "pothole", "slow_zone"])
+        obstacle_type = random.choice([
+            "barrier",
+            "oil",
+            "pothole",
+            "slow_zone"
+        ])
 
         obstacle = {
             "rect": pygame.Rect(x, y, 50, 35),
@@ -185,11 +228,16 @@ class RacerGame:
         self.powerups.append(powerup)
 
     def spawn_road_event(self):
-        event_type = random.choice(["moving_barrier", "speed_bump", "nitro_strip"])
+        event_type = random.choice([
+            "moving_barrier",
+            "speed_bump",
+            "nitro_strip"
+        ])
 
         if event_type == "moving_barrier":
             lane = random.randint(0, self.lane_count - 1)
             x = self.lanes[lane] - 35
+
             event = {
                 "rect": pygame.Rect(x, -50, 70, 28),
                 "type": event_type,
@@ -200,6 +248,7 @@ class RacerGame:
         elif event_type == "speed_bump":
             lane = random.randint(0, self.lane_count - 1)
             x = self.lanes[lane] - 40
+
             event = {
                 "rect": pygame.Rect(x, -40, 80, 22),
                 "type": event_type,
@@ -210,6 +259,7 @@ class RacerGame:
         else:
             lane = random.randint(0, self.lane_count - 1)
             x = self.lanes[lane] - 35
+
             event = {
                 "rect": pygame.Rect(x, -45, 70, 35),
                 "type": event_type,
@@ -242,8 +292,10 @@ class RacerGame:
         if self.shield_active:
             self.shield_active = False
             self.active_powerup = None
+            self.play_sound("powerup")
             return
 
+        self.play_sound("crash")
         self.game_over = True
 
     def update_powerup(self):
@@ -345,6 +397,7 @@ class RacerGame:
             elif coin["rect"].colliderect(self.player_rect):
                 self.coins_collected += coin["value"]
                 self.score += coin["value"] * 50
+                self.play_sound("coin")
                 self.coins.remove(coin)
 
         for powerup in self.powerups[:]:
@@ -356,6 +409,7 @@ class RacerGame:
 
             elif powerup["rect"].colliderect(self.player_rect):
                 self.activate_powerup(powerup["type"])
+                self.play_sound("powerup")
                 self.powerups.remove(powerup)
 
         for event in self.road_events[:]:
@@ -410,33 +464,88 @@ class RacerGame:
     def draw_road(self, screen):
         screen.fill((30, 140, 60))
 
-        pygame.draw.rect(screen, (45, 45, 45), (self.road_left, 0, self.road_width, self.height))
+        pygame.draw.rect(
+            screen,
+            (45, 45, 45),
+            (self.road_left, 0, self.road_width, self.height)
+        )
 
         for i in range(1, self.lane_count):
             x = self.road_left + i * self.lane_width
-            pygame.draw.line(screen, (230, 230, 230), (x, 0), (x, self.height), 2)
+            pygame.draw.line(
+                screen,
+                (230, 230, 230),
+                (x, 0),
+                (x, self.height),
+                2
+            )
 
         dash_height = 40
         gap = 35
 
         for y in range(-dash_height, self.height, dash_height + gap):
             draw_y = y + self.road_offset % (dash_height + gap)
-            pygame.draw.rect(screen, (255, 255, 255), (self.width // 2 - 4, draw_y, 8, dash_height))
+            pygame.draw.rect(
+                screen,
+                (255, 255, 255),
+                (self.width // 2 - 4, draw_y, 8, dash_height)
+            )
 
     def draw_player(self, screen):
-        pygame.draw.rect(screen, self.player_color, self.player_rect, border_radius=8)
-        pygame.draw.rect(screen, (0, 0, 0), self.player_rect, 3, border_radius=8)
+        pygame.draw.rect(
+            screen,
+            self.player_color,
+            self.player_rect,
+            border_radius=8
+        )
 
-        window = pygame.Rect(self.player_rect.x + 10, self.player_rect.y + 10, 25, 18)
-        pygame.draw.rect(screen, (180, 230, 255), window, border_radius=4)
+        pygame.draw.rect(
+            screen,
+            (0, 0, 0),
+            self.player_rect,
+            3,
+            border_radius=8
+        )
+
+        window = pygame.Rect(
+            self.player_rect.x + 10,
+            self.player_rect.y + 10,
+            25,
+            18
+        )
+
+        pygame.draw.rect(
+            screen,
+            (180, 230, 255),
+            window,
+            border_radius=4
+        )
 
         if self.shield_active:
-            pygame.draw.circle(screen, (80, 200, 255), self.player_rect.center, 50, 4)
+            pygame.draw.circle(
+                screen,
+                (80, 200, 255),
+                self.player_rect.center,
+                50,
+                4
+            )
 
     def draw_traffic(self, screen):
         for car in self.traffic:
-            pygame.draw.rect(screen, car["color"], car["rect"], border_radius=8)
-            pygame.draw.rect(screen, (0, 0, 0), car["rect"], 2, border_radius=8)
+            pygame.draw.rect(
+                screen,
+                car["color"],
+                car["rect"],
+                border_radius=8
+            )
+
+            pygame.draw.rect(
+                screen,
+                (0, 0, 0),
+                car["rect"],
+                2,
+                border_radius=8
+            )
 
     def draw_obstacles(self, screen):
         for obstacle in self.obstacles:
@@ -444,7 +553,13 @@ class RacerGame:
 
             if obstacle["type"] == "barrier":
                 pygame.draw.rect(screen, (230, 60, 40), rect)
-                pygame.draw.line(screen, (255, 255, 255), rect.topleft, rect.bottomright, 4)
+                pygame.draw.line(
+                    screen,
+                    (255, 255, 255),
+                    rect.topleft,
+                    rect.bottomright,
+                    4
+                )
 
             elif obstacle["type"] == "oil":
                 pygame.draw.ellipse(screen, (10, 10, 10), rect)
@@ -454,11 +569,17 @@ class RacerGame:
                 pygame.draw.ellipse(screen, (20, 20, 20), rect.inflate(-10, -10))
 
             elif obstacle["type"] == "slow_zone":
-                pygame.draw.rect(screen, (200, 180, 80), rect, border_radius=8)
+                pygame.draw.rect(
+                    screen,
+                    (200, 180, 80),
+                    rect,
+                    border_radius=8
+                )
 
     def draw_coins(self, screen):
         for coin in self.coins:
             rect = coin["rect"]
+
             pygame.draw.circle(screen, (255, 215, 0), rect.center, 15)
             pygame.draw.circle(screen, (150, 100, 0), rect.center, 15, 2)
 
@@ -498,10 +619,21 @@ class RacerGame:
                 pygame.draw.rect(screen, (0, 0, 0), rect, 2)
 
             elif event["type"] == "speed_bump":
-                pygame.draw.rect(screen, (255, 180, 50), rect, border_radius=8)
+                pygame.draw.rect(
+                    screen,
+                    (255, 180, 50),
+                    rect,
+                    border_radius=8
+                )
 
             elif event["type"] == "nitro_strip":
-                pygame.draw.rect(screen, (0, 220, 255), rect, border_radius=8)
+                pygame.draw.rect(
+                    screen,
+                    (0, 220, 255),
+                    rect,
+                    border_radius=8
+                )
+
                 label = self.font.render("BOOST", True, (0, 0, 0))
                 label_rect = label.get_rect(center=rect.center)
                 screen.blit(label, label_rect)
@@ -510,6 +642,7 @@ class RacerGame:
         remaining = max(0, self.finish_distance - self.distance)
 
         hud_bg = pygame.Rect(10, 10, 190, 170)
+
         pygame.draw.rect(screen, (20, 20, 20), hud_bg, border_radius=10)
         pygame.draw.rect(screen, (255, 255, 255), hud_bg, 2, border_radius=10)
 
@@ -546,9 +679,21 @@ class RacerGame:
         bar_h = 15
 
         pygame.draw.rect(screen, (20, 20, 20), (bar_x, bar_y, bar_w, bar_h))
+
         progress = min(1, self.distance / self.finish_distance)
-        pygame.draw.rect(screen, (0, 220, 120), (bar_x, bar_y, int(bar_w * progress), bar_h))
-        pygame.draw.rect(screen, (255, 255, 255), (bar_x, bar_y, bar_w, bar_h), 2)
+
+        pygame.draw.rect(
+            screen,
+            (0, 220, 120),
+            (bar_x, bar_y, int(bar_w * progress), bar_h)
+        )
+
+        pygame.draw.rect(
+            screen,
+            (255, 255, 255),
+            (bar_x, bar_y, bar_w, bar_h),
+            2
+        )
 
     def draw(self, screen):
         self.draw_road(screen)
