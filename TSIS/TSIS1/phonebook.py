@@ -1,11 +1,6 @@
-import psycopg2
 import csv
 import json
-from config import DB_CONFIG
-
-
-def connect():
-    return psycopg2.connect(**DB_CONFIG)
+from connect import get_connection
 
 
 def show_contacts(rows):
@@ -24,16 +19,27 @@ def show_contacts(rows):
         print(f"Phones: {row[6]}")
 
 
-def filter_by_group():
-    group = input("Enter group name: ")
+def get_group_id(cur, group_name):
+    cur.execute("""
+        INSERT INTO groups(name)
+        VALUES (%s)
+        ON CONFLICT(name) DO NOTHING;
+    """, (group_name,))
 
-    conn = connect()
+    cur.execute("SELECT id FROM groups WHERE name = %s;", (group_name,))
+    return cur.fetchone()[0]
+
+
+def filter_by_group():
+    group = input("Enter group name: ").strip()
+
+    conn = get_connection()
     cur = conn.cursor()
 
     cur.execute("""
         SELECT c.id, c.name, c.surname, c.email, c.birthday,
                g.name,
-               STRING_AGG(p.phone || ' (' || p.type || ')', ', ')
+               COALESCE(STRING_AGG(p.phone || ' (' || p.type || ')', ', '), '')
         FROM contacts c
         LEFT JOIN groups g ON c.group_id = g.id
         LEFT JOIN phones p ON c.id = p.contact_id
@@ -42,23 +48,22 @@ def filter_by_group():
         ORDER BY c.id;
     """, (group,))
 
-    rows = cur.fetchall()
-    show_contacts(rows)
+    show_contacts(cur.fetchall())
 
     cur.close()
     conn.close()
 
 
 def search_by_email():
-    email = input("Enter email pattern: ")
+    email = input("Enter email pattern: ").strip()
 
-    conn = connect()
+    conn = get_connection()
     cur = conn.cursor()
 
     cur.execute("""
         SELECT c.id, c.name, c.surname, c.email, c.birthday,
                g.name,
-               STRING_AGG(p.phone || ' (' || p.type || ')', ', ')
+               COALESCE(STRING_AGG(p.phone || ' (' || p.type || ')', ', '), '')
         FROM contacts c
         LEFT JOIN groups g ON c.group_id = g.id
         LEFT JOIN phones p ON c.id = p.contact_id
@@ -67,20 +72,18 @@ def search_by_email():
         ORDER BY c.id;
     """, (f"%{email}%",))
 
-    rows = cur.fetchall()
-    show_contacts(rows)
+    show_contacts(cur.fetchall())
 
     cur.close()
     conn.close()
 
 
 def sort_contacts():
-    print("Sort by:")
-    print("1. Name")
-    print("2. Birthday")
-    print("3. Date added")
+    print("1. Sort by name")
+    print("2. Sort by birthday")
+    print("3. Sort by date added")
 
-    choice = input("Choose: ")
+    choice = input("Choose: ").strip()
 
     if choice == "1":
         order_by = "c.name"
@@ -89,16 +92,16 @@ def sort_contacts():
     elif choice == "3":
         order_by = "c.id"
     else:
-        print("Invalid choice")
+        print("Invalid choice.")
         return
 
-    conn = connect()
+    conn = get_connection()
     cur = conn.cursor()
 
     cur.execute(f"""
         SELECT c.id, c.name, c.surname, c.email, c.birthday,
                g.name,
-               STRING_AGG(p.phone || ' (' || p.type || ')', ', ')
+               COALESCE(STRING_AGG(p.phone || ' (' || p.type || ')', ', '), '')
         FROM contacts c
         LEFT JOIN groups g ON c.group_id = g.id
         LEFT JOIN phones p ON c.id = p.contact_id
@@ -106,25 +109,24 @@ def sort_contacts():
         ORDER BY {order_by};
     """)
 
-    rows = cur.fetchall()
-    show_contacts(rows)
+    show_contacts(cur.fetchall())
 
     cur.close()
     conn.close()
 
 
 def pagination_loop():
-    limit = int(input("Enter page size: "))
+    limit = int(input("Enter page size: ").strip())
     offset = 0
 
-    conn = connect()
+    conn = get_connection()
     cur = conn.cursor()
 
     while True:
         cur.execute("""
             SELECT c.id, c.name, c.surname, c.email, c.birthday,
                    g.name,
-                   STRING_AGG(p.phone || ' (' || p.type || ')', ', ')
+                   COALESCE(STRING_AGG(p.phone || ' (' || p.type || ')', ', '), '')
             FROM contacts c
             LEFT JOIN groups g ON c.group_id = g.id
             LEFT JOIN phones p ON c.id = p.contact_id
@@ -136,7 +138,7 @@ def pagination_loop():
         rows = cur.fetchall()
         show_contacts(rows)
 
-        command = input("next / prev / quit: ").lower()
+        command = input("next / prev / quit: ").strip().lower()
 
         if command == "next":
             offset += limit
@@ -145,18 +147,18 @@ def pagination_loop():
         elif command == "quit":
             break
         else:
-            print("Wrong command")
+            print("Wrong command.")
 
     cur.close()
     conn.close()
 
 
 def add_phone():
-    name = input("Contact name: ")
-    phone = input("New phone: ")
-    phone_type = input("Type(home/work/mobile): ")
+    name = input("Contact name: ").strip()
+    phone = input("New phone: ").strip()
+    phone_type = input("Type(home/work/mobile): ").strip()
 
-    conn = connect()
+    conn = get_connection()
     cur = conn.cursor()
 
     cur.execute("CALL add_phone(%s, %s, %s);", (name, phone, phone_type))
@@ -169,10 +171,10 @@ def add_phone():
 
 
 def move_to_group():
-    name = input("Contact name: ")
-    group = input("New group: ")
+    name = input("Contact name: ").strip()
+    group = input("New group: ").strip()
 
-    conn = connect()
+    conn = get_connection()
     cur = conn.cursor()
 
     cur.execute("CALL move_to_group(%s, %s);", (name, group))
@@ -185,29 +187,26 @@ def move_to_group():
 
 
 def advanced_search():
-    query = input("Search query: ")
+    query = input("Search query: ").strip()
 
-    conn = connect()
+    conn = get_connection()
     cur = conn.cursor()
 
     cur.execute("SELECT * FROM search_contacts(%s);", (query,))
-    rows = cur.fetchall()
-
-    show_contacts(rows)
+    show_contacts(cur.fetchall())
 
     cur.close()
     conn.close()
 
 
 def export_to_json():
-    filename = input("JSON filename: ")
+    filename = input("JSON filename: ").strip()
 
-    conn = connect()
+    conn = get_connection()
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT c.id, c.name, c.surname, c.email, c.birthday,
-               g.name
+        SELECT c.id, c.name, c.surname, c.email, c.birthday, g.name
         FROM contacts c
         LEFT JOIN groups g ON c.group_id = g.id
         ORDER BY c.id;
@@ -225,6 +224,7 @@ def export_to_json():
         """, (contact_id,))
 
         phones = []
+
         for p in cur.fetchall():
             phones.append({
                 "phone": p[0],
@@ -250,12 +250,12 @@ def export_to_json():
 
 
 def import_from_json():
-    filename = input("JSON filename: ")
+    filename = input("JSON filename: ").strip()
 
     with open(filename, "r", encoding="utf-8") as file:
         contacts = json.load(file)
 
-    conn = connect()
+    conn = get_connection()
     cur = conn.cursor()
 
     for contact in contacts:
@@ -269,23 +269,16 @@ def import_from_json():
         cur.execute("SELECT id FROM contacts WHERE name = %s;", (name,))
         existing = cur.fetchone()
 
-        if existing:
-            choice = input(f"{name} already exists. skip or overwrite? ")
+        group_id = get_group_id(cur, group)
 
-            if choice.lower() == "skip":
+        if existing:
+            choice = input(f"{name} already exists. skip or overwrite? ").strip().lower()
+
+            if choice == "skip":
                 continue
 
-            if choice.lower() == "overwrite":
+            if choice == "overwrite":
                 contact_id = existing[0]
-
-                cur.execute("""
-                    INSERT INTO groups(name)
-                    VALUES(%s)
-                    ON CONFLICT(name) DO NOTHING;
-                """, (group,))
-
-                cur.execute("SELECT id FROM groups WHERE name = %s;", (group,))
-                group_id = cur.fetchone()[0]
 
                 cur.execute("""
                     UPDATE contacts
@@ -305,15 +298,6 @@ def import_from_json():
                     """, (contact_id, p["phone"], p["type"]))
 
         else:
-            cur.execute("""
-                INSERT INTO groups(name)
-                VALUES(%s)
-                ON CONFLICT(name) DO NOTHING;
-            """, (group,))
-
-            cur.execute("SELECT id FROM groups WHERE name = %s;", (group,))
-            group_id = cur.fetchone()[0]
-
             cur.execute("""
                 INSERT INTO contacts(name, surname, email, birthday, group_id)
                 VALUES(%s, %s, %s, %s, %s)
@@ -336,49 +320,57 @@ def import_from_json():
 
 
 def import_from_csv():
-    filename = input("CSV filename: ")
+    filename = input("CSV filename: ").strip()
 
-    conn = connect()
+    conn = get_connection()
     cur = conn.cursor()
 
     with open(filename, "r", encoding="utf-8") as file:
         reader = csv.DictReader(file)
 
         for row in reader:
-            name = row["name"]
-            surname = row["surname"]
-            email = row["email"]
-            birthday = row["birthday"]
-            group = row["group"]
-            phone = row["phone"]
-            phone_type = row["phone_type"]
+            name = row["name"].strip()
+            surname = row["surname"].strip()
+            email = row["email"].strip()
+            birthday = row["birthday"].strip()
+            group = row["group"].strip()
+            phone = row["phone"].strip()
+            phone_type = row["phone_type"].strip()
 
-            cur.execute("""
-                INSERT INTO groups(name)
-                VALUES(%s)
-                ON CONFLICT(name) DO NOTHING;
-            """, (group,))
+            group_id = get_group_id(cur, group)
 
-            cur.execute("SELECT id FROM groups WHERE name = %s;", (group,))
-            group_id = cur.fetchone()[0]
+            cur.execute("SELECT id FROM contacts WHERE name = %s;", (name,))
+            existing = cur.fetchone()
 
-            cur.execute("""
-                INSERT INTO contacts(name, surname, email, birthday, group_id)
-                VALUES(%s, %s, %s, %s, %s)
-                ON CONFLICT(name) DO UPDATE
-                SET surname = EXCLUDED.surname,
-                    email = EXCLUDED.email,
-                    birthday = EXCLUDED.birthday,
-                    group_id = EXCLUDED.group_id
-                RETURNING id;
-            """, (name, surname, email, birthday, group_id))
+            if existing:
+                contact_id = existing[0]
 
-            contact_id = cur.fetchone()[0]
+                cur.execute("""
+                    UPDATE contacts
+                    SET surname = %s,
+                        email = %s,
+                        birthday = %s,
+                        group_id = %s
+                    WHERE id = %s;
+                """, (surname, email, birthday, group_id, contact_id))
+
+            else:
+                cur.execute("""
+                    INSERT INTO contacts(name, surname, email, birthday, group_id)
+                    VALUES(%s, %s, %s, %s, %s)
+                    RETURNING id;
+                """, (name, surname, email, birthday, group_id))
+
+                contact_id = cur.fetchone()[0]
 
             cur.execute("""
                 INSERT INTO phones(contact_id, phone, type)
-                VALUES(%s, %s, %s);
-            """, (contact_id, phone, phone_type))
+                SELECT %s, %s, %s
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM phones
+                    WHERE contact_id = %s AND phone = %s
+                );
+            """, (contact_id, phone, phone_type, contact_id, phone))
 
     conn.commit()
     print("CSV imported.")
@@ -402,7 +394,7 @@ def menu():
         print("10. Import from CSV")
         print("0. Exit")
 
-        choice = input("Choose: ")
+        choice = input("Choose: ").strip()
 
         if choice == "1":
             filter_by_group()
@@ -427,7 +419,7 @@ def menu():
         elif choice == "0":
             break
         else:
-            print("Invalid choice")
+            print("Invalid choice.")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,11 @@
+name,surname,email,birthday,group,phone,phone_type
+Danial,Torekhan,danial@gmail.com,2007-05-10,Friend,87001234567,mobile
+Danial,Torekhan,danial@gmail.com,2007-05-10,Friend,87005554433,work
+Ali,Khan,ali@gmail.com,2006-03-12,Work,87007654321,work
+Ali,Khan,ali@gmail.com,2006-03-12,Work,87009998877,mobile
+Sara,Smith,sara@gmail.com,2005-11-22,Family,87001112233,home
+John,Doe,john@gmail.com,2000-01-01,Other,87002223344,mobile
+Aruzhan,Serikova,aruzhan@gmail.com,2004-02-15,Friend,87003334455,mobile
+Aruzhan,Serikova,aruzhan@gmail.com,2004-02-15,Friend,87004445566,home
+Nursultan,Akhmetov,nur@gmail.com,2003-07-20,Work,87005556677,work
+Dias,Kairat,dias@gmail.com,2002-01-01,Other,87006667788,mobile
