@@ -1,9 +1,45 @@
 [
     {
+        "name": "dani",
+        "score": 8110,
+        "distance": 14297,
+        "coins": 27
+    },
+    {
+        "name": "dani",
+        "score": 7280,
+        "distance": 13623,
+        "coins": 13
+    },
+    {
+        "name": "dani",
+        "score": 5170,
+        "distance": 9124,
+        "coins": 18
+    },
+    {
+        "name": "dani",
+        "score": 4591,
+        "distance": 8864,
+        "coins": 10
+    },
+    {
         "name": "Danial",
         "score": 4329,
         "distance": 7896,
         "coins": 11
+    },
+    {
+        "name": "Dani",
+        "score": 4085,
+        "distance": 7507,
+        "coins": 13
+    },
+    {
+        "name": "dani",
+        "score": 3991,
+        "distance": 7593,
+        "coins": 7
     },
     {
         "name": "Danial",
@@ -12,51 +48,15 @@
         "coins": 12
     },
     {
-        "name": "Danial",
-        "score": 3706,
-        "distance": 5010,
-        "coins": 10
+        "name": "Dani",
+        "score": 3853,
+        "distance": 6938,
+        "coins": 13
     },
     {
-        "name": "Danial",
-        "score": 3663,
-        "distance": 5009,
-        "coins": 8
-    },
-    {
-        "name": "Danial",
-        "score": 3636,
-        "distance": 5000,
-        "coins": 7
-    },
-    {
-        "name": "Danial",
-        "score": 3586,
-        "distance": 5000,
-        "coins": 6
-    },
-    {
-        "name": "Danial",
-        "score": 2531,
-        "distance": 4549,
-        "coins": 9
-    },
-    {
-        "name": "Danial",
-        "score": 2486,
-        "distance": 4852,
-        "coins": 7
-    },
-    {
-        "name": "Danial",
-        "score": 2156,
-        "distance": 4384,
-        "coins": 3
-    },
-    {
-        "name": "Danial",
-        "score": 2098,
-        "distance": 3834,
-        "coins": 6
+        "name": "dani",
+        "score": 3761,
+        "distance": 6205,
+        "coins": 16
     }
 ]
